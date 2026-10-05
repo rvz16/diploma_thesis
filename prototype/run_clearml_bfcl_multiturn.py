@@ -17,7 +17,9 @@ def main():
     p.add_argument("--output", default="bfcl_multiturn_base_qwen3_14b_smoke.json")
     args = p.parse_args()
     task = Task.init(
-        project_name="Diploma Thesis / Structured Output UQ",
+        # Avoid '/' here: this ClearML deployment resolves an existing nested
+        # project name as a duplicate create request.
+        project_name="Diploma Thesis Multi-Turn UQ",
         task_name="BFCL-multi-turn-base | Qwen3-14B | constrained CP | smoke-20",
         task_type=Task.TaskTypes.testing,
         reuse_last_task_id=False,
