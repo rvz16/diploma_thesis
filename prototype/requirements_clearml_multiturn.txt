@@ -1,0 +1,10 @@
+# Reproducible GPU environment for BFCL multi-turn constrained rollouts.
+# bfcl_eval pins NumPy 1.26.4, so SciPy/sklearn must stay on the compatible
+# generation rather than resolving to their newest NumPy-2-only releases.
+torch==2.7.1
+transformers==4.52.4
+clearml==2.1.12
+numpy==1.26.4
+scipy==1.14.1
+scikit-learn==1.5.2
+git+https://github.com/ShishirPatil/gorilla.git@6ea57973c7a6097fd7c5915698c54c17c5b1b6c8#subdirectory=berkeley-function-call-leaderboard
