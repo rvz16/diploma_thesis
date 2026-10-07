@@ -2,7 +2,13 @@
 # bfcl_eval pins NumPy 1.26.4, so SciPy/sklearn must stay on the compatible
 # generation rather than resolving to their newest NumPy-2-only releases.
 torch==2.7.1
-transformers==4.52.4
+# The official BFCL package currently depends on Transformers 5.x via
+# sentence-transformers.  Pin the coupled Hub/Tokenizer packages too; without
+# them pip can leave a Transformers-5 installation paired with the older
+# Transformers-4 dependencies.
+transformers==5.19.0
+huggingface-hub==1.31.0
+tokenizers==0.23.1
 clearml==2.1.12
 numpy==1.26.4
 scipy==1.14.1
