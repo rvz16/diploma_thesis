@@ -260,6 +260,7 @@ def rollout_entry(entry: dict, ground_truth: list[list[str]], fc, executor, chec
         row["critical_step"] = int(not success and i == first_wrong)
     return {
         "id": entry["id"], "skipped": None, "trajectory_success": int(success),
+        "trajectory_failure": int(not success),
         "force_terminated": force_terminated, "evaluation": evaluation,
         "rows": rows, "model_responses": all_responses,
     }

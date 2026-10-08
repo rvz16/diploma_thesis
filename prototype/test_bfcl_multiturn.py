@@ -7,7 +7,14 @@ import unittest
 
 sys.path.insert(0, ".")
 
-from bfcl_multiturn import DEFAULT_DATA, END_NAME, load_entries, load_tools, rollout_entry
+from bfcl_multiturn import (
+    DEFAULT_DATA,
+    END_NAME,
+    load_entries,
+    load_tools,
+    rollout_entry,
+    trajectory_record,
+)
 from fc_constrained import DecodeResult, Step
 
 
@@ -61,9 +68,13 @@ class MultiTurnTests(unittest.TestCase):
         result = rollout_entry(entry, gold, FakeDecoder(actions), executor,
                                lambda *args: {"valid": True}, DEFAULT_DATA, "test_run")
         self.assertEqual(result["trajectory_success"], 1)
+        self.assertEqual(result["trajectory_failure"], 0)
         self.assertEqual(len(executor.instance.calls), sum(map(len, gold)))
         self.assertTrue(all("state_before_sha256" in r for r in result["rows"]))
         self.assertFalse(any(r["wrong_valid"] for r in result["rows"]))
+        record = trajectory_record(result)
+        self.assertEqual(record["trajectory_failure"], 0)
+        self.assertGreater(len(record["trajectory_steps"]), 0)
 
 
 if __name__ == "__main__":
