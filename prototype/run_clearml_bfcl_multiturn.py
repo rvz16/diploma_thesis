@@ -12,7 +12,7 @@ from bfcl_multiturn import DEFAULT_DATA, run_evaluation
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--model", default="Qwen/Qwen3-14B-Instruct")
+    p.add_argument("--model", default="Qwen/Qwen3-14B")
     p.add_argument("--limit", type=int, default=20)
     p.add_argument("--output", default="bfcl_multiturn_base_qwen3_14b_smoke.json")
     args = p.parse_args()
