@@ -35,6 +35,21 @@ Impossible Bench (Логическое несоответсвие с теста�
 - [x] На реальном multi-turn artifact посчитан HTC: Full OOF AUROC 0.833,
   AUPRC 0.972; Reduced OOF AUROC 0.812, AUPRC 0.966. Это предварительный
   3-fold smoke result (только 3 successes), не финальная benchmark-оценка.
+- [x] Реализован leakage-free Jev (`~typesafe/jev-latest`) pre-execution gate:
+  нативный `Choice(execute, review)` получает историю, доступные tools и
+  предложенный structured call, но не видит текущий observation или BFCL label.
+  Есть deterministic sampling, checkpoint/resume, тесты и парная оценка с
+  G-NLL-SMT/CP на одних action rows.
+- [ ] Запустить Jev smoke, затем все 301 action и сравнить AUROC/AUPRC,
+  risk--coverage, Brier/ECE и latency. Первый официальный API-вызов 2026-10-09
+  дошёл до `/v1/systemone`, но OpenRouter вернул `402 Insufficient credits`;
+  нужен баланс OpenRouter либо `TYPESAFE_API_KEY` и TypeSafe endpoint.
+- [x] Добавлены бесплатные open-weight Jev-compatible альтернативы: полный
+  `Cloudflare/clef` 27B (Apache-2.0) и reasoning-модель `PostHog/jeeves` 9B.
+  Их pinned checkpoints запускаются локально на ClearML A100 80 GB без
+  model-API keys и используют тот же leakage-free `execute/review` protocol.
+- [ ] Провести одинаковый smoke на 5 actions для Clef и Jeeves, затем после
+  проверки артефактов расширить обе модели до общей выборки 40/301 actions.
 - [ ] Добавить MC sampling и action-distance logging для честных SAUP/UProp
   trajectory baselines; затем провести full V3/V4 multi-turn evaluation.
 - [ ] Добавить abstention/impossible примеры и затем выбрать один внешний

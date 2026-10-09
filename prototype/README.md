@@ -383,3 +383,74 @@ trajectory features.  SAUP and UProp are deliberately withheld until a later
 MC-sampling pass supplies their required situation weights and predecessor
 alternative-decision distances; substituting greedy values would not reproduce
 those baselines.
+
+## Jev pre-execution gate
+
+Jev is evaluated as a bounded decision model, not as another tool-call
+generator.  For every recorded BFCL action, `run_jev_bfcl_gate.py` asks the
+native Jev `Choice` primitive whether the proposed structured call should be
+`execute`d or sent to `review`.  The state contains the user turns, prior
+executed actions and observations, available tool schemas, and the proposed
+action.  It deliberately excludes the current observation, `wrong_valid`, and
+the final trajectory label.
+
+```bash
+# Leakage/selection tests and a no-network reconstruction check.
+python -m unittest test_jev_gate.py
+python run_jev_bfcl_gate.py --limit 5 --dry-run
+
+# Official Jev route through OpenRouter; checkpointed after every request.
+uv run --with typesafe-sdk==0.7.2 python run_jev_bfcl_gate.py --limit 5
+uv run --with typesafe-sdk==0.7.2 python run_jev_bfcl_gate.py --limit 0
+
+# Equivalent direct TypeSafe route when TYPESAFE_API_KEY is configured.
+uv run --with typesafe-sdk==0.7.2 python run_jev_bfcl_gate.py \
+  --provider typesafe --limit 5
+
+# Paired comparison on exactly the successfully scored action rows.
+python eval_jev_gate.py \
+  results/bfcl_multiturn_base_qwen3_14b_smoke.json \
+  results/bfcl_multiturn_base_qwen3_14b_jev_gate.json
+```
+
+The matching `OPENROUTER_API_KEY` or `TYPESAFE_API_KEY` must be present in the
+environment or repository-local `.env`.  The first live request on 2026-10-09
+reached the official `/v1/systemone` route but returned HTTP 402 due to
+insufficient OpenRouter credits, so no Jev quality result is reported yet.
+Brier score and ECE are reported only for Jev's native `P(review)`;
+G-NLL-SMT and CP remain ranking baselines and are compared by AUROC/AUPRC and
+matched-coverage risk.
+
+### Free open-weight alternatives: Clef and Jeeves
+
+`run_clearml_open_decision_gate.py` runs the same gate from public weights,
+without a hosted-model API key:
+
+- `Cloudflare/clef` is the full 27B BF16 Clef model (Apache-2.0), pinned to a
+  concrete Hugging Face revision.
+- `PostHog/jeeves` is the 9B reasoning decision model, with both weights and
+  source pinned.  On the available A100 workers it uses BF16 because Jeeves'
+  FP8 kernel requires compute capability 8.9 or newer.
+
+Both jobs use the same deterministic five-action prefix first, so their
+probabilities can be compared with Jev, G-NLL-SMT, and CP on identical rows.
+They write the same checkpointed result schema consumed by
+`eval_jev_gate.py`.
+
+```bash
+clearml-task --project "Diploma Thesis Multi-Turn UQ" \
+  --name "BFCL gate | Clef-27B | smoke-5" \
+  --repo https://github.com/rvz16/diploma_thesis.git --branch main \
+  --script prototype/run_clearml_open_decision_gate.py --skip-task-init \
+  --requirements prototype/requirements_clef.txt --queue high_q_80 \
+  --docker nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 \
+  --args backend=clef limit=5
+
+clearml-task --project "Diploma Thesis Multi-Turn UQ" \
+  --name "BFCL gate | Jeeves-9B | smoke-5" \
+  --repo https://github.com/rvz16/diploma_thesis.git --branch main \
+  --script prototype/run_clearml_open_decision_gate.py --skip-task-init \
+  --requirements prototype/requirements_jeeves.txt --queue high_q_80 \
+  --docker nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 \
+  --args backend=jeeves limit=5 max_think=768
+```
