@@ -349,9 +349,12 @@ def _positive_vector(values: Sequence[float], name: str) -> np.ndarray:
 
 def _probability_vector(values: Sequence[float], name: str) -> np.ndarray:
     x = _positive_vector(values, name)
-    if np.any(x > 1.0):
+    # Top-k probability mass is accumulated in model dtype (often float32 or
+    # bfloat16), so a mathematically valid sum can land a few ulps above one.
+    # Accept only that numerical overshoot; material invalid values still fail.
+    if np.any(x > 1.0 + 1e-6):
         raise ValueError(f"{name} must be at most one")
-    return x
+    return np.minimum(x, 1.0)
 
 
 def _stats(values: np.ndarray) -> tuple[float, float, float, float]:

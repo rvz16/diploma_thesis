@@ -29,9 +29,12 @@ Impossible Bench (Логическое несоответсвие с теста�
   top-1 и top-5 confidence. SAUP/UProp не запускаются на greedy rollouts до
   добавления требуемых ими MC alternatives / situation weights.
 - [ ] Повторить semantic-confidence прогон для Qwen2.5-3B.
-- [ ] Запустить первый BFCL multi-turn smoke (1--20 trajectories) на GPU и
-  сохранить `action -> observation -> state` artifact. Локальный запуск требует
-  offline cache и CPU слишком медленный; ClearML требует read-доступа worker к GitHub repo.
+- [x] Запущен BFCL multi-turn smoke на Qwen3-14B: 19 валидных траекторий,
+  301 executed actions, 3/19 success; сохранён ClearML artifact с
+  `action -> observation -> state` и confidence по каждому action.
+- [x] На реальном multi-turn artifact посчитан HTC: Full OOF AUROC 0.833,
+  AUPRC 0.972; Reduced OOF AUROC 0.812, AUPRC 0.966. Это предварительный
+  3-fold smoke result (только 3 successes), не финальная benchmark-оценка.
 - [ ] Добавить MC sampling и action-distance logging для честных SAUP/UProp
   trajectory baselines; затем провести full V3/V4 multi-turn evaluation.
 - [ ] Добавить abstention/impossible примеры и затем выбрать один внешний
@@ -89,6 +92,26 @@ Impossible Bench (Логическое несоответсвие с теста�
    Базовая общая постановка Agent UQ: heterogeneous entities, uncertainty
    dynamics и дефицит fine-grained agent benchmarks.
 
+9. **Uncertainty Quantification for LLM Function-Calling**
+   ([arXiv 2026](https://arxiv.org/abs/2604.22985)).
+   Самая прямая одношаговая работа для нашего action-level baseline: сравнивает
+   single- и multi-sample UQ для function calls, AST-based clustering и
+   uncertainty только по семантически значимым токенам. Её протокол нужно
+   воспроизвести до заявления преимуществ trajectory aggregation.
+
+10. **The Hidden Cost of Structured Generation in LLMs: Draft-Conditioned
+    Constrained Decoding** ([arXiv 2026](https://arxiv.org/abs/2603.03305)).
+    Формализует projection tax hard-constrained decoding: малая feasible mass
+    может направлять модель в локально допустимый, но семантически неверный
+    output. Это прямое обоснование нашей цепочки
+    `constraint -> wrong-valid action -> state corruption` и baseline DCCD.
+
+11. **From Uncertainty to Action: Learning to Steer LLM Agents**
+    ([arXiv 2026](https://arxiv.org/abs/2610.09115)).
+    Показывает, что uncertainty может предсказывать неуспех, но не обязательно
+    правильный момент вмешательства; вводит Value of Steering и harm-budgeted
+    trigger. Нужна как ближайший baseline для selective intervention.
+
 ### Полезные дополнительные работы
 
 - **The Confidence Dichotomy: Analyzing and Mitigating Miscalibration in
@@ -105,6 +128,29 @@ Impossible Bench (Логическое несоответсвие с теста�
 - **Trajectory UQ taxonomy and TC-ECE**
   ([arXiv 2026](https://arxiv.org/abs/2609.07395)):
   Trajectory-Checkpoint ECE и оценка calibration на разных длинах траектории.
+- **Grammar-Aligned Decoding**
+  ([arXiv 2024](https://arxiv.org/abs/2405.21047)):
+  показывает, что обычное grammar masking искажает условное распределение;
+  теоретическая опора для анализа constrained probabilities.
+- **Clarify the User or Verify the World?**
+  ([arXiv 2026](https://arxiv.org/abs/2609.32255)):
+  uncertainty routing между ACT, CLARIFY и VERIFY на tool-use trajectories.
+- **JSONSchemaBench**
+  ([arXiv 2025](https://arxiv.org/abs/2501.10868)):
+  benchmark покрытия JSON Schema, скорости и качества constrained generation.
+- **CONSTRUCT / Real-Time Trustworthiness Scoring for LLM Structured Outputs**
+  ([arXiv 2026](https://arxiv.org/abs/2603.18014)):
+  black-box output- и field-level uncertainty без logprobs; полезный baseline
+  для structured-output detection вне open-weight setting.
+- **Knowing What You Know Is Not Enough**
+  ([arXiv 2025](https://arxiv.org/abs/2511.13240)):
+  демонстрирует action--belief gap: статическая confidence не гарантирует
+  согласованное действие агента.
+- **Uncertainty of Thoughts**
+  ([arXiv 2024](https://arxiv.org/abs/2402.03271)) и **Conformal Information
+  Pursuit** ([arXiv 2025](https://arxiv.org/abs/2507.03279)):
+  uncertainty-aware и conformal information-seeking baselines для
+  последовательного уточнения информации.
 - **BFCL V3/V4 documentation**
   ([official repository](https://github.com/EnlightenedAI/BFCL/blob/main/berkeley-function-call-leaderboard/bfcl_eval/data/README.md)):
   V3 даёт Multi-Turn/Multi-Step; V4 Agentic — persistent state, Web Search и
@@ -128,12 +174,19 @@ critical trajectory error -> selective intervention`.
 
 - [ ] Детально прочитать SAGE и зафиксировать точное отличие по данным,
   uncertainty signal и intervention policy.
+- [ ] Воспроизвести action-level protocol из UQ for LLM Function-Calling:
+  semantic-token score и AST clustering как одношаговые baselines.
+- [ ] Измерить feasible probability mass / projection tax hard constraints и
+  сравнить обычный constrained decoding с draft-conditioned вариантом DCCD.
 - [ ] Разобрать Beyond Single-Turn Confidence: их action spans, aggregators,
   datasets и сильные baseline results; воспроизвести совместимые metrics.
 - [ ] Сверить RUPA и ToolChain-CRC с H2--H4, чтобы не повторить их постановку
   propagation/intervention без собственного constrained-output вклада.
+- [ ] Сопоставить selective execution с Value of Steering: отдельно измерять
+  detection failure и полезность вмешательства при заданном harm budget.
 - [x] Собрать BFCL V3 Multi-Turn runner с action/state/observation logging.
-- [ ] После GPU rollout запустить HTC как реальный baseline; добавить MC
-  alternatives/situation weights и затем честно запустить SAUP/UProp.
+- [x] После GPU rollout запустить HTC как реальный baseline.
+- [ ] Добавить MC alternatives/situation weights и затем честно запустить
+  SAUP/UProp.
 - [ ] Добавить TC-ECE/InfoECE как secondary calibration metrics alongside
   critical-error rate and risk--coverage.
