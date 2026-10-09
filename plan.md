@@ -50,7 +50,8 @@ Impossible Bench (Логическое несоответсвие с теста�
   model-API keys и используют тот же leakage-free `execute/review` protocol.
 - [ ] Одинаковый smoke на 5 actions запущен 2026-10-09: первый Clef task
   `142364cfb0474bd2bcf192743545db6c` завершился до model load из-за
-  отсутствующего S3 driver в окружении; исправленный retry указан ниже.
+  отсутствующего S3 driver в окружении; исправленный retry
+  `8fe1d1f9e6524836a8be8cbc571392e7` уже работает на `aiagent01:gpu0`.
   Jeeves task
   `ba11d0485e8d4501983aad9a966249e9` на `aiagent02:gpu0`. После проверки
   артефактов расширить обе модели до общей выборки 40/301 actions.

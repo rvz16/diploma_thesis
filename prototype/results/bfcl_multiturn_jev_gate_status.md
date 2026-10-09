@@ -65,5 +65,6 @@ The smoke tasks started in parallel on 2026-10-09:
 
 - Clef first attempt: `142364cfb0474bd2bcf192743545db6c` failed before
   model loading because the clean worker environment lacked ClearML's S3
-  dependency.  `boto3` is now an explicit requirement for the retry.
+  dependency.  `boto3` is now an explicit requirement; retry
+  `8fe1d1f9e6524836a8be8cbc571392e7` is running on `aiagent01:gpu0`.
 - Jeeves: `ba11d0485e8d4501983aad9a966249e9` on `aiagent02:gpu0`.
