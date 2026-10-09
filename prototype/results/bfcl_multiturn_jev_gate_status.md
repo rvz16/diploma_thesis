@@ -60,3 +60,8 @@ The provider blocker does not apply to two Jev-compatible open models:
 Both local runners use the identical selected actions, state builder, gate
 wording, labels, and evaluation code.  Initial runs are five-action integration
 smokes; they are not sufficient for a quality claim.
+
+The smoke tasks started in parallel on 2026-10-09:
+
+- Clef: `142364cfb0474bd2bcf192743545db6c` on `aiagent01:gpu0`.
+- Jeeves: `ba11d0485e8d4501983aad9a966249e9` on `aiagent02:gpu0`.
