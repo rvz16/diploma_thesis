@@ -13,8 +13,15 @@ from bfcl_candidate_choice import (
     build_base_cases,
     encode_case,
     request_body,
+    semantic_labels,
 )
-from eval_candidate_choice import _baseline, _label_sensitivity, _summarize
+from eval_candidate_choice import (
+    _baseline,
+    _bootstrap_metrics,
+    _label_sensitivity,
+    _semantic_vs_arbitrary,
+    _summarize,
+)
 
 
 class CandidateChoiceTests(unittest.TestCase):
@@ -34,13 +41,23 @@ class CandidateChoiceTests(unittest.TestCase):
             for candidate in case["candidates"]:
                 self.assertTrue(action_is_schema_valid(candidate["action"], case["available_tools"]))
 
-    def test_short_and_long_conditions_preserve_candidate_mapping(self):
+    def test_label_conditions_preserve_candidate_mapping(self):
         for case in self.cases[:25]:
-            short, long = encode_case(case, "short"), encode_case(case, "long")
-            self.assertEqual(short["candidates"], long["candidates"])
-            short_index = short["candidate_labels"].index(short["correct_label"])
-            long_index = long["candidate_labels"].index(long["correct_label"])
-            self.assertEqual(short_index, long_index)
+            encoded = [encode_case(case, condition)
+                       for condition in ("short", "long", "semantic")]
+            self.assertTrue(all(row["candidates"] == encoded[0]["candidates"]
+                                for row in encoded[1:]))
+            gold_indices = [row["candidate_labels"].index(row["correct_label"])
+                            for row in encoded]
+            self.assertEqual(len(set(gold_indices)), 1)
+
+    def test_semantic_labels_are_unique_and_gold_agnostic(self):
+        for case in self.cases[:25]:
+            labels = semantic_labels(case["candidates"])
+            self.assertEqual(len(labels), len(set(labels)))
+            for label, candidate in zip(labels, case["candidates"]):
+                self.assertIn(candidate["action"]["name"], label)
+                self.assertNotIn(candidate["kind"], label)
 
     def test_request_excludes_gold_and_baseline_fields(self):
         encoded = encode_case(self.cases[0], "short")
@@ -79,6 +96,29 @@ class CandidateChoiceTests(unittest.TestCase):
         sensitivity = _label_sensitivity(rows)
         self.assertEqual(sensitivity["same_candidate_rate"], 1.0)
         self.assertEqual(sensitivity["mcnemar_exact_p"], 1.0)
+        intervals = _bootstrap_metrics(rows, reps=100, seed=2026)
+        self.assertEqual(intervals["accuracy"]["low"], 1.0)
+        self.assertEqual(intervals["accuracy"]["high"], 1.0)
+
+    def test_semantic_vs_arbitrary_is_task_paired(self):
+        rows = []
+        for case_id, outcomes in (("x", (1, 0, 1)), ("y", (0, 0, 1))):
+            for condition, correct in zip(("short", "long", "semantic"), outcomes):
+                labels = [f"{condition}_0", f"{condition}_1"]
+                rows.append({
+                    "case_id": case_id,
+                    "condition": condition,
+                    "correct_label": labels[0],
+                    "candidate_labels": labels,
+                    "choice": labels[0] if correct else labels[1],
+                    "correct": correct,
+                    "probabilities": {labels[0]: 0.75, labels[1]: 0.25},
+                })
+        comparison = _semantic_vs_arbitrary(rows, reps=100, seed=2026)
+        self.assertEqual(comparison["n"], 2)
+        self.assertEqual(comparison["semantic_accuracy"], 1.0)
+        self.assertEqual(comparison["mean_arbitrary_accuracy"], 0.25)
+        self.assertEqual(comparison["semantic_minus_mean_arbitrary_accuracy"], 0.75)
 
 
 if __name__ == "__main__":

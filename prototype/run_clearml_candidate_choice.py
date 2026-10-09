@@ -13,6 +13,7 @@ from bfcl_candidate_choice import (
     DEFAULT_DATA,
     DEFAULT_FEATURES,
     DEFAULT_FEATURES_3B,
+    LABEL_CONDITIONS,
     build_encoded_cases,
     request_body,
 )
@@ -28,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--features-3b", type=Path, default=DEFAULT_FEATURES_3B)
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--limit", type=int, default=40,
-                        help="Number of unique BFCL tasks; each has both label conditions")
+                        help="Number of unique BFCL tasks; 0 selects the full population")
     parser.add_argument("--conditions", default="short,long")
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--max-think", type=int, default=768)
@@ -39,10 +40,11 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     conditions = tuple(item.strip() for item in args.conditions.split(",") if item.strip())
-    if not conditions or any(item not in {"short", "long"} for item in conditions):
-        raise ValueError("--conditions must contain short and/or long")
+    if not conditions or any(item not in LABEL_CONDITIONS for item in conditions):
+        raise ValueError(f"--conditions must contain values from {LABEL_CONDITIONS}")
     if args.output is None:
-        args.output = Path(f"bfcl_candidate_choice_{args.backend}_{args.limit}.json")
+        scope = args.limit if args.limit else "all"
+        args.output = Path(f"bfcl_candidate_choice_{args.backend}_{scope}.json")
 
     cases = build_encoded_cases(
         args.data_dir,
@@ -59,7 +61,8 @@ def main() -> None:
 
     task = Task.init(
         project_name="Diploma Thesis Multi-Turn UQ",
-        task_name=f"BFCL candidate choice | {args.backend} | n={args.limit}x{len(conditions)}",
+        task_name=(f"BFCL candidate choice | {args.backend} | "
+                   f"n={args.limit or 'all'}x{len(conditions)}"),
         task_type=Task.TaskTypes.testing,
         reuse_last_task_id=False,
     )

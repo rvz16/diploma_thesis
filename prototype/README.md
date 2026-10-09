@@ -469,17 +469,21 @@ Each case contains the oracle action, a schema-valid wrong-argument near miss,
 the closest wrong tool, and (when available) a distant wrong tool.  Candidate
 order is deterministically counterbalanced.
 
-Every case is repeated with short (`A`, `B`, ...) and long arbitrary option IDs
-while preserving the candidate mapping.  This enables paired tests of label
-sensitivity.  Complexity and lexical candidate similarity are stored for H2;
-native class probabilities, confidence, latency, and both Qwen baselines are
-stored for H1/H3.  Gold labels and baseline outcomes are joined only after
+Every case is repeated with short (`A`, `B`, ...), long arbitrary option IDs,
+and semantic tool-name IDs while preserving the candidate mapping. Same-tool
+actions receive neutral `variant_n` suffixes based only on displayed candidate
+order, never on correctness. This enables paired arbitrary-vs-semantic and
+label-length tests. Complexity and lexical candidate similarity are stored for
+H2; native class probabilities, confidence, latency, and both Qwen baselines
+are stored for H1/H3. Gold labels and baseline outcomes are joined only after
 inference and never enter the model request.
 
 ```bash
 python -m unittest test_candidate_choice.py
 python run_clearml_candidate_choice.py --backend jeeves --limit 2 --dry-run
 python run_clearml_candidate_choice.py --backend laya --limit 2 --dry-run
+python run_clearml_candidate_choice.py --backend laya --limit 0 \
+  --conditions short,long,semantic
 
 # First statistically useful cohort: 40 tasks x two label conditions.
 clearml-task --project "Diploma Thesis Multi-Turn UQ" \
@@ -512,8 +516,10 @@ python eval_candidate_choice.py bfcl_candidate_choice_jeeves_40.json
 The evaluator reports decision accuracy against both constrained-Qwen sizes,
 confidence Brier/ECE/log loss, multiclass Brier score, label-condition flips,
 and the interaction of the decision-model advantage with schema complexity and
-candidate similarity.  The 40-task run is an intermediate cohort; final claims
-should use the full 174 cases and confidence intervals.
+candidate similarity. It uses deterministic task-level percentile bootstrap
+(10,000 replicates by default) for metric, paired-accuracy-difference, and
+interaction 95% confidence intervals. The full protocol uses all 174 tasks and
+all three label conditions (522 requests).
 
 The first Laya run (`6bd5c859cd0e47c1991ab8c28c6b15de`) completed all 80
 requests. Accuracy was 0.700 with short option IDs and 0.475 with long IDs;

@@ -18,13 +18,19 @@ def _report_scalars(task: Task, result: dict) -> None:
         for metric in ("accuracy", "brier", "ece_10", "adaptive_ece_10",
                        "log_loss", "multiclass_brier", "mean_p_gold", "mean_latency_s"):
             logger.report_scalar(f"decision_{condition}", metric, decision[metric], 0)
+        for metric, interval in decision["bootstrap_ci95"].items():
+            logger.report_scalar(f"decision_{condition}_{metric}_ci95", "low", interval["low"], 0)
+            logger.report_scalar(f"decision_{condition}_{metric}_ci95", "high", interval["high"], 0)
         for model, metrics in block["constrained_ar"].items():
             series = model.replace("Qwen/Qwen2.5-", "qwen_").replace("-Instruct", "")
             for metric in ("accuracy", "brier", "ece_10", "adaptive_ece_10", "log_loss"):
                 logger.report_scalar(f"ar_{condition}_{series}", metric, metrics[metric], 0)
     for metric, value in result["h2_label_sensitivity"].items():
-        if metric != "n":
+        if metric != "n" and isinstance(value, (int, float)):
             logger.report_scalar("label_sensitivity", metric, value, 0)
+    for metric, value in result["semantic_vs_arbitrary"].items():
+        if metric != "n" and isinstance(value, (int, float)):
+            logger.report_scalar("semantic_vs_arbitrary", metric, value, 0)
 
 
 def main() -> None:
@@ -32,6 +38,8 @@ def main() -> None:
     parser.add_argument("--source-task", required=True)
     parser.add_argument("--artifact-name", required=True)
     parser.add_argument("--output", type=Path, default=Path("candidate_choice_metrics.json"))
+    parser.add_argument("--bootstrap-reps", type=int, default=10_000)
+    parser.add_argument("--bootstrap-seed", type=int, default=2026)
     args = parser.parse_args()
 
     task = Task.init(
@@ -42,7 +50,7 @@ def main() -> None:
     )
     source = Task.get_task(task_id=args.source_task)
     artifact_path = source.artifacts[args.artifact_name].get_local_copy()
-    result = evaluate(Path(artifact_path))
+    result = evaluate(Path(artifact_path), args.bootstrap_reps, args.bootstrap_seed)
     args.output.write_text(json.dumps(result, indent=2))
     print(json.dumps(result, indent=2), flush=True)
     _report_scalars(task, result)
@@ -51,4 +59,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

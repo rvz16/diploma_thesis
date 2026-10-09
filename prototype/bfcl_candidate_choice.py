@@ -4,8 +4,8 @@ The benchmark turns each representable BFCL ``multiple`` item into a bounded
 decision.  Every case contains the oracle action plus schema-valid distractors:
 an argument near-miss when possible, the lexically closest wrong tool, and the
 most distant wrong tool.  The same candidates are exposed under short and long
-arbitrary labels so label/tokenization sensitivity can be measured without
-changing the underlying decision.
+arbitrary labels and semantic tool-name labels, so label sensitivity can be
+measured without changing the underlying decision.
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ LONG_LABELS = (
     "candidate_option_charlie",
     "candidate_option_delta",
 )
+LABEL_CONDITIONS = ("short", "long", "semantic")
 
 
 def _json_lines(path: Path) -> list[dict[str, Any]]:
@@ -291,11 +292,30 @@ def build_base_cases(data_dir: Path = DEFAULT_DATA,
     return cases
 
 
+def semantic_labels(candidates: list[dict[str, Any]]) -> tuple[str, ...]:
+    """Create gold-agnostic semantic IDs while keeping same-tool options unique."""
+    totals: dict[str, int] = {}
+    for candidate in candidates:
+        name = candidate["action"]["name"]
+        totals[name] = totals.get(name, 0) + 1
+    seen: dict[str, int] = {}
+    labels = []
+    for candidate in candidates:
+        name = candidate["action"]["name"]
+        seen[name] = seen.get(name, 0) + 1
+        labels.append(name if totals[name] == 1 else f"{name}__variant_{seen[name]}")
+    return tuple(labels)
+
+
 def encode_case(case: dict[str, Any], condition: str) -> dict[str, Any]:
-    labels = SHORT_LABELS if condition == "short" else LONG_LABELS
-    if condition not in {"short", "long"}:
-        raise ValueError("condition must be 'short' or 'long'")
-    labels = labels[:len(case["candidates"])]
+    if condition == "short":
+        labels = SHORT_LABELS[:len(case["candidates"])]
+    elif condition == "long":
+        labels = LONG_LABELS[:len(case["candidates"])]
+    elif condition == "semantic":
+        labels = semantic_labels(case["candidates"])
+    else:
+        raise ValueError(f"condition must be one of {LABEL_CONDITIONS}")
     criteria = {
         label: "Candidate action: " + json.dumps(candidate["action"], sort_keys=True)
         for label, candidate in zip(labels, case["candidates"])
