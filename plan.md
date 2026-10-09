@@ -48,13 +48,18 @@ Impossible Bench (Логическое несоответсвие с теста�
   `Cloudflare/clef` 27B (Apache-2.0) и reasoning-модель `PostHog/jeeves` 9B.
   Их pinned checkpoints запускаются локально на ClearML A100 80 GB без
   model-API keys и используют тот же leakage-free `execute/review` protocol.
-- [ ] Одинаковый smoke на 5 actions запущен 2026-10-09: первый Clef task
-  `142364cfb0474bd2bcf192743545db6c` завершился до model load из-за
-  отсутствующего S3 driver в окружении; исправленный retry
-  `8fe1d1f9e6524836a8be8cbc571392e7` уже работает на `aiagent01:gpu0`.
-  Jeeves task
-  `ba11d0485e8d4501983aad9a966249e9` на `aiagent02:gpu0`. После проверки
-  артефактов расширить обе модели до общей выборки 40/301 actions.
+- [x] Jeeves smoke `ba11d0485e8d4501983aad9a966249e9` завершён: 5/5
+  predictions, но `n=5` (4 wrong / 1 correct) считается только integration
+  smoke. Clef retry `8fe1d1f9e6524836a8be8cbc571392e7` загрузил checkpoint,
+  но остановился при создании processor из-за отсутствующего `torchvision`;
+  dependency добавлена в pinned environment для следующего запуска.
+- [x] Реализован прямой paired H1--H3 benchmark на 174 BFCL `multiple` tasks:
+  gold action + schema-valid wrong-argument, near wrong-tool и far wrong-tool
+  candidates; short/long arbitrary labels, schema-complexity и candidate-
+  similarity strata; leakage tests проходят. Добавлено сравнение с теми же
+  constrained Qwen2.5-0.5B/3B rows по accuracy, Brier/ECE/log-loss.
+- [ ] Запустить Jeeves и Clef сначала на общем cohort 40 tasks x 2 label
+  encodings, проверить paired results, затем расширить до всех 174 tasks.
 - [ ] Добавить MC sampling и action-distance logging для честных SAUP/UProp
   trajectory baselines; затем провести full V3/V4 multi-turn evaluation.
 - [ ] Добавить abstention/impossible примеры и затем выбрать один внешний

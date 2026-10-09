@@ -3,6 +3,9 @@ clearml==2.1.12
 boto3>=1.35,<2
 setuptools>=77,<82
 torch==2.11.0
+# Clef uses AutoProcessor for its Qwen3.8 vision backbone even for text-only
+# requests.  The matching torchvision release is therefore still required.
+torchvision==0.26.0
 transformers==5.10.2
 huggingface-hub==1.32.0
 safetensors==0.8.0

@@ -454,3 +454,50 @@ clearml-task --project "Diploma Thesis Multi-Turn UQ" \
   --docker nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 \
   --args backend=jeeves limit=5 max_think=768
 ```
+
+## Paired H1--H3 candidate-choice experiment
+
+The five-action gate smoke is not sufficient to claim that decision models are
+better than constrained autoregressive generation.  The direct experiment in
+`bfcl_candidate_choice.py` therefore converts all 174 representable BFCL
+`multiple` cases used by the Qwen2.5-0.5B/3B baselines into bounded decisions.
+Each case contains the oracle action, a schema-valid wrong-argument near miss,
+the closest wrong tool, and (when available) a distant wrong tool.  Candidate
+order is deterministically counterbalanced.
+
+Every case is repeated with short (`A`, `B`, ...) and long arbitrary option IDs
+while preserving the candidate mapping.  This enables paired tests of label
+sensitivity.  Complexity and lexical candidate similarity are stored for H2;
+native class probabilities, confidence, latency, and both Qwen baselines are
+stored for H1/H3.  Gold labels and baseline outcomes are joined only after
+inference and never enter the model request.
+
+```bash
+python -m unittest test_candidate_choice.py
+python run_clearml_candidate_choice.py --backend jeeves --limit 2 --dry-run
+
+# First statistically useful cohort: 40 tasks x two label conditions.
+clearml-task --project "Diploma Thesis Multi-Turn UQ" \
+  --name "BFCL candidate choice | Jeeves-9B | 40x2" \
+  --repo https://github.com/rvz16/diploma_thesis.git --branch main \
+  --script prototype/run_clearml_candidate_choice.py --skip-task-init \
+  --requirements prototype/requirements_jeeves.txt --queue high_q_80 \
+  --docker nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 \
+  --args backend=jeeves limit=40 conditions=short,long max_think=768
+
+clearml-task --project "Diploma Thesis Multi-Turn UQ" \
+  --name "BFCL candidate choice | Clef-27B | 40x2" \
+  --repo https://github.com/rvz16/diploma_thesis.git --branch main \
+  --script prototype/run_clearml_candidate_choice.py --skip-task-init \
+  --requirements prototype/requirements_clef.txt --queue high_q_80 \
+  --docker nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 \
+  --args backend=clef limit=40 conditions=short,long
+
+python eval_candidate_choice.py bfcl_candidate_choice_jeeves_40.json
+```
+
+The evaluator reports decision accuracy against both constrained-Qwen sizes,
+confidence Brier/ECE/log loss, multiclass Brier score, label-condition flips,
+and the interaction of the decision-model advantage with schema complexity and
+candidate similarity.  The 40-task run is an intermediate cohort; final claims
+should use the full 174 cases and confidence intervals.

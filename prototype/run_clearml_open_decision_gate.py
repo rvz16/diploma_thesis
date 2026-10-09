@@ -64,11 +64,12 @@ def load_clef() -> tuple[Callable[[dict[str, Any]], dict[str, Any]], dict[str, A
 
     model, processor = load_release_model(model_path, device="cuda")
 
-    def decide(state: dict[str, Any]) -> dict[str, Any]:
-        return systemone(model, processor, request_body(state, "clef"))
+    def decide(body: dict[str, Any]) -> dict[str, Any]:
+        return systemone(model, processor, body)
 
     return decide, {
         "model": CLEF_MODEL,
+        "api_model": "clef",
         "weights_revision": CLEF_REVISION,
         "precision": "bfloat16",
     }
@@ -112,15 +113,18 @@ def load_jeeves(max_think: int) -> tuple[Callable[[dict[str, Any]], dict[str, An
         "precision": "bf16",
     })
 
-    def decide(state: dict[str, Any]) -> dict[str, Any]:
-        return server.systemone(request_body(
-            state,
-            "jeeves-latest",
-            {"think": True, "max_think": max_think, "return_reasoning": False},
-        ))
+    def decide(body: dict[str, Any]) -> dict[str, Any]:
+        body = dict(body)
+        body["options"] = {
+            "think": True,
+            "max_think": max_think,
+            "return_reasoning": False,
+        }
+        return server.systemone(body)
 
     return decide, {
         "model": JEEVES_MODEL,
+        "api_model": "jeeves-latest",
         "weights_revision": JEEVES_REVISION,
         "code_revision": JEEVES_CODE_REVISION,
         "precision": "bfloat16",
@@ -202,7 +206,12 @@ def main() -> None:
             "tool_count": len(state["available_tools"]),
         }
         try:
-            response = decide(state)
+            response = decide(request_body(
+                state,
+                model_info["api_model"],
+                {"think": True, "max_think": args.max_think,
+                 "return_reasoning": False} if args.backend == "jeeves" else None,
+            ))
             answer = response["answers"]["gate"]
             record.update({
                 "choice": answer["choice"],
