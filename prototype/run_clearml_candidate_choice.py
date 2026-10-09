@@ -1,7 +1,5 @@
 """Run open decision models on paired BFCL bounded candidate-selection cases."""
 
-from __future__ import annotations
-
 import argparse
 import json
 import time
