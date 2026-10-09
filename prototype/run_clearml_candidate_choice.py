@@ -1,4 +1,4 @@
-"""Run Clef or Jeeves on paired BFCL bounded candidate-selection cases."""
+"""Run open decision models on paired BFCL bounded candidate-selection cases."""
 
 from __future__ import annotations
 
@@ -18,13 +18,13 @@ from bfcl_candidate_choice import (
     build_encoded_cases,
     request_body,
 )
-from run_clearml_open_decision_gate import load_clef, load_jeeves
+from run_clearml_open_decision_gate import load_clef, load_jeeves, load_laya
 from run_jev_bfcl_gate import _checkpoint
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--backend", choices=("clef", "jeeves"), required=True)
+    parser.add_argument("--backend", choices=("clef", "jeeves", "laya"), required=True)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA)
     parser.add_argument("--features", type=Path, default=DEFAULT_FEATURES)
     parser.add_argument("--features-3b", type=Path, default=DEFAULT_FEATURES_3B)
@@ -86,7 +86,12 @@ def main() -> None:
         f"memory={gpu.total_memory / 2**30:.1f} GiB"
     )
 
-    decide, model_info = load_clef() if args.backend == "clef" else load_jeeves(args.max_think)
+    if args.backend == "clef":
+        decide, model_info = load_clef()
+    elif args.backend == "jeeves":
+        decide, model_info = load_jeeves(args.max_think)
+    else:
+        decide, model_info = load_laya()
     payload: dict[str, Any] = {
         "method": "BFCL bounded candidate selection",
         "backend": args.backend,

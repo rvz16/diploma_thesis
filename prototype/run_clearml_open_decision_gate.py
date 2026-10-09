@@ -1,13 +1,14 @@
 """Evaluate open Jev-compatible decision models on recorded BFCL actions.
 
-The two supported backends are Cloudflare Clef and PostHog Jeeves.  Both run
-from public weights on the ClearML GPU; no hosted-model API key is involved.
+Clef, Jeeves, and Laya all run from public weights on the ClearML GPU; no
+hosted-model API key is involved.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -38,6 +39,9 @@ JEEVES_MODEL = "PostHog/jeeves"
 JEEVES_REVISION = "c754d6794ae04012b46eac3c6a8623521add7387"
 JEEVES_REPO = "https://github.com/PostHog/jeeves.git"
 JEEVES_CODE_REVISION = "3f948dec68187ed3ced9152ed3d84b73e498665c"
+LAYA_MODEL = "convaiinnovations/laya-typed-decisions"
+LAYA_REVISION = "e929ae5cf69bc34259cd2f95c9e91145b818b1f0"
+LAYA_VERSION = "0.4.1"
 
 
 def request_body(state: dict[str, Any], model: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -132,16 +136,42 @@ def load_jeeves(max_think: int) -> tuple[Callable[[dict[str, Any]], dict[str, An
     }
 
 
+def load_laya() -> tuple[Callable[[dict[str, Any]], dict[str, Any]], dict[str, Any]]:
+    # Transformers may probe an installed TensorFlow runtime during model
+    # construction.  Laya documents USE_TF=0 as the deterministic workaround.
+    os.environ.setdefault("USE_TF", "0")
+    import laya
+
+    agent = laya.load(
+        LAYA_MODEL,
+        device="cuda",
+        revision=LAYA_REVISION,
+    )
+
+    def decide(body: dict[str, Any]) -> dict[str, Any]:
+        return agent.predict(body["state"], body["questions"])
+
+    return decide, {
+        "model": LAYA_MODEL,
+        "api_model": "typed-decisions",
+        "parameters": 421_000_000,
+        "weights_revision": getattr(agent, "revision", None) or LAYA_REVISION,
+        "laya_version": getattr(laya, "__version__", LAYA_VERSION),
+        "precision": str(getattr(agent, "dtype", "unknown")),
+        "context_tokens": 1024,
+    }
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
-    p.add_argument("--backend", choices=("clef", "jeeves"), required=True)
+    p.add_argument("--backend", choices=("clef", "jeeves", "laya"), required=True)
     p.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     p.add_argument("--data-dir", type=Path, default=DEFAULT_DATA)
     p.add_argument("--output", type=Path, default=None)
     p.add_argument("--limit", type=int, default=5)
     p.add_argument("--seed", type=int, default=2026)
     p.add_argument("--max-think", type=int, default=768,
-                   help="Jeeves reasoning cap; ignored by Clef")
+                   help="Jeeves reasoning cap; ignored by Clef and Laya")
     return p.parse_args()
 
 
@@ -176,7 +206,12 @@ def main() -> None:
         rows.sort(key=lambda r: (r["turn"], r["step"]))
     selected = select_actions(blob["rows"], args.limit or None, args.seed)
 
-    decide, model_info = load_clef() if args.backend == "clef" else load_jeeves(args.max_think)
+    if args.backend == "clef":
+        decide, model_info = load_clef()
+    elif args.backend == "jeeves":
+        decide, model_info = load_jeeves(args.max_think)
+    else:
+        decide, model_info = load_laya()
     payload: dict[str, Any] = {
         "method": f"{args.backend} Choice pre-execution gate",
         "backend": args.backend,
