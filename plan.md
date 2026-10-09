@@ -48,8 +48,10 @@ Impossible Bench (Логическое несоответсвие с теста�
   `Cloudflare/clef` 27B (Apache-2.0) и reasoning-модель `PostHog/jeeves` 9B.
   Их pinned checkpoints запускаются локально на ClearML A100 80 GB без
   model-API keys и используют тот же leakage-free `execute/review` protocol.
-- [ ] Одинаковый smoke на 5 actions запущен 2026-10-09: Clef task
-  `142364cfb0474bd2bcf192743545db6c` на `aiagent01:gpu0`, Jeeves task
+- [ ] Одинаковый smoke на 5 actions запущен 2026-10-09: первый Clef task
+  `142364cfb0474bd2bcf192743545db6c` завершился до model load из-за
+  отсутствующего S3 driver в окружении; исправленный retry указан ниже.
+  Jeeves task
   `ba11d0485e8d4501983aad9a966249e9` на `aiagent02:gpu0`. После проверки
   артефактов расширить обе модели до общей выборки 40/301 actions.
 - [ ] Добавить MC sampling и action-distance logging для честных SAUP/UProp

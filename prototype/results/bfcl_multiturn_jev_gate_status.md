@@ -63,5 +63,7 @@ smokes; they are not sufficient for a quality claim.
 
 The smoke tasks started in parallel on 2026-10-09:
 
-- Clef: `142364cfb0474bd2bcf192743545db6c` on `aiagent01:gpu0`.
+- Clef first attempt: `142364cfb0474bd2bcf192743545db6c` failed before
+  model loading because the clean worker environment lacked ClearML's S3
+  dependency.  `boto3` is now an explicit requirement for the retry.
 - Jeeves: `ba11d0485e8d4501983aad9a966249e9` on `aiagent02:gpu0`.

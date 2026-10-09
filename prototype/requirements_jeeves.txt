@@ -1,5 +1,6 @@
 # Official PostHog/Jeeves inference environment plus ClearML tracking.
 clearml==2.1.12
+boto3>=1.35,<2
 setuptools>=77,<82
 torch==2.14.0
 triton==3.8.0; sys_platform == "linux"
