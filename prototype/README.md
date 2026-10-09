@@ -529,3 +529,44 @@ approximately 0.03 seconds per request. This makes Laya useful as a sub-1B
 stress baseline: it matches the 3B constrained AR baseline under short labels,
 but exposes substantial option-ID sensitivity rather than supporting an
 unconditional decision-model advantage.
+
+### Full 174-task result
+
+The confirmatory Laya run (`41e78022ae7c4cd9999bc860ae236a4c`) completed all
+522 requests (174 tasks x 3 paired label conditions). The independent evaluator
+(`c7eb1ed80e054573ab21e77c2418d7ef`) used 10,000 deterministic task-level
+bootstrap replicates; brackets below are percentile 95% confidence intervals.
+
+| Label condition | Laya accuracy | Qwen-0.5B | Qwen-3B | Laya ECE | Multiclass Brier |
+|---|---:|---:|---:|---:|---:|
+| Short arbitrary IDs | **0.730** [0.661, 0.793] | 0.552 | 0.695 | 0.365 [0.303, 0.427] | 0.594 [0.577, 0.611] |
+| Long arbitrary IDs | 0.517 [0.443, 0.586] | 0.552 | **0.695** | 0.193 [0.126, 0.265] | 0.673 [0.661, 0.685] |
+| Semantic tool-name IDs | 0.167 [0.115, 0.224] | 0.552 | **0.695** | 0.196 [0.139, 0.249] | 0.747 [0.729, 0.764] |
+
+The label manipulation has a large causal effect on this checkpoint while the
+candidate actions, order, and task remain fixed. Short IDs beat long IDs by
+0.213 [0.126, 0.299] accuracy (exact paired McNemar p=3.02e-6); the selected
+underlying candidate is unchanged in only 54.0% of pairs. Contrary to the
+semantic-label expectation, semantic tool-name IDs score 0.457 below the mean
+of the two arbitrary-ID conditions (signed difference -0.457
+[-0.529, -0.385]). Semantic-vs-short choices agree in only 31.0% of tasks.
+
+The result gives a narrow, mixed verdict on the preregistered hypotheses:
+
+- **H1 is conditional, not generally supported.** With short IDs Laya exceeds
+  Qwen-0.5B by 0.178 [0.075, 0.282], but its +0.034 advantage over Qwen-3B is
+  inconclusive [-0.063, 0.138]. Long and semantic IDs remove or reverse the
+  advantage.
+- **H2 is not supported.** The schema-complexity and candidate-similarity
+  interaction intervals generally include zero. The sole interval excluding
+  zero is in the opposite direction: under long IDs, the Laya-vs-Qwen-3B
+  advantage declines by 0.267 [-0.470, -0.059] on high-complexity tasks.
+- **H3 is not supported for Laya-421M.** The apparently best short-ID accuracy
+  is badly miscalibrated (ECE 0.365 versus 0.079 for Qwen-0.5B and 0.134 for
+  Qwen-3B), and semantic IDs have the worst multiclass Brier score.
+
+These are results for one 421M decision checkpoint on bounded, one-step
+candidate selection. Semantic labels expose model/interface sensitivity; they
+do not establish that semantic labels are intrinsically harmful to larger
+Clef/Jeeves-style decision models. The experiment also does not replace the
+planned multi-step trajectory evaluation.

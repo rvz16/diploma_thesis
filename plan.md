@@ -71,9 +71,23 @@ Impossible Bench (Логическое несоответсвие с теста�
   свидетельство label/tokenization sensitivity, а не общей победы decision
   decoding. Warm latency около 0.03 s/request; confidence пока считать
   предварительной из-за предупреждений model card о calibration.
-- [ ] Расширить paired candidate-choice до всех 174 tasks и добавить bootstrap
-  confidence intervals; отдельно проверить semantic labels вместо произвольных
-  short/long IDs.
+- [x] Полный paired candidate-choice завершён на всех 174 tasks: 522/522
+  решений Laya-421M для short, long и semantic labels (ClearML
+  `41e78022ae7c4cd9999bc860ae236a4c`); отдельный evaluator с 10,000
+  task-level bootstrap resamples завершён (`c7eb1ed80e054573ab21e77c2418d7ef`).
+  Accuracy: short 0.730 [0.661, 0.793], long 0.517 [0.443, 0.586], semantic
+  0.167 [0.115, 0.224]. Semantic labels оказались хуже среднего arbitrary
+  labels на 0.457 [0.385, 0.529] по абсолютной accuracy (интервал для signed
+  semantic-minus-arbitrary: [-0.529, -0.385]). Short превосходит long на
+  0.213 [0.126, 0.299], exact McNemar p=3.02e-6; выбор самого candidate
+  совпадает только в 54.0% пар. H1 поддержана только против Qwen-0.5B при
+  short IDs (+0.178 [0.075, 0.282]), но не против Qwen-3B; для long и semantic
+  общей победы нет. H2 не поддержана: почти все complexity/similarity
+  interaction CI включают ноль, а единственный значимый schema interaction
+  для long-vs-Qwen-3B отрицателен. H3 также не поддержана: short-label ECE
+  0.365 [0.303, 0.427] хуже обеих Qwen baselines, несмотря на высокую accuracy.
+  Вывод относится к конкретной sub-1B Laya checkpoint и bounded one-step
+  candidate selection, а не ко всем decision models.
 - [ ] Добавить MC sampling и action-distance logging для честных SAUP/UProp
   trajectory baselines; затем провести full V3/V4 multi-turn evaluation.
 - [ ] Добавить abstention/impossible примеры и затем выбрать один внешний
