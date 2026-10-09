@@ -346,12 +346,14 @@ in principle, when token log-probs are unavailable (API-only models).
 
 - The general BFCL grammar supports enum/string/integer/number/boolean and
   optional arguments, but not arrays, objects, tuples, or nested schemas.
-- Real BFCL has been evaluated with Qwen2.5-0.5B and 3B; 7B and a genuinely
-  multi-step tool-use benchmark are still missing.
+- Single-step BFCL has been evaluated with Qwen2.5-0.5B and 3B. A first
+  stateful BFCL multi-turn smoke is complete with Qwen3-14B (19 trajectories,
+  301 executed actions); a larger held-out run is still needed.
 - AST entropy and INSIDE have been run on 0.5B, but not replicated at 3B.
-- SAUP/UProp/HTC now have tested feature/aggregation implementations; their
-  actual comparison still requires recorded multi-step trajectories (and the
-  much more expensive TDP resampling required by UProp).
+- SAUP/UProp/HTC have tested feature/aggregation implementations. HTC has now
+  been evaluated on the Qwen3-14B multi-turn artifact (OOF AUROC 0.833), while
+  SAUP/UProp still require MC alternatives, situation weights, and the more
+  expensive TDP resampling required by UProp.
 - The repository still needs a dependency lockfile, experiment manifest, and
   tracked result artifacts before the numbers are independently reproducible.
 
