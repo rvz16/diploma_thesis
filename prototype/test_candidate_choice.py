@@ -76,7 +76,9 @@ class CandidateChoiceTests(unittest.TestCase):
         self.assertEqual(summary["accuracy"], 1.0)
         self.assertAlmostEqual(summary["brier"], 0.0625)
         self.assertEqual(_baseline(rows, "Qwen/test")["accuracy"], 0.0)
-        self.assertEqual(_label_sensitivity(rows)["same_candidate_rate"], 1.0)
+        sensitivity = _label_sensitivity(rows)
+        self.assertEqual(sensitivity["same_candidate_rate"], 1.0)
+        self.assertEqual(sensitivity["mcnemar_exact_p"], 1.0)
 
 
 if __name__ == "__main__":

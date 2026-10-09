@@ -113,21 +113,35 @@ def _label_sensitivity(rows: list[dict[str, Any]]) -> dict[str, float]:
     if not complete:
         return {"n": 0}
     same_candidate, flips, p_differences = [], [], []
+    short_only_correct = 0
+    long_only_correct = 0
     for pair in complete:
         short, long = pair["short"], pair["long"]
         short_index = short["candidate_labels"].index(short["choice"])
         long_index = long["candidate_labels"].index(long["choice"])
         same_candidate.append(short_index == long_index)
         flips.append(short["correct"] != long["correct"])
+        short_only_correct += int(short["correct"] and not long["correct"])
+        long_only_correct += int(long["correct"] and not short["correct"])
         p_differences.append(abs(
             short["probabilities"][short["correct_label"]]
             - long["probabilities"][long["correct_label"]]
         ))
+    discordant = short_only_correct + long_only_correct
+    if discordant:
+        smaller = min(short_only_correct, long_only_correct)
+        tail = sum(math.comb(discordant, k) for k in range(smaller + 1)) / 2 ** discordant
+        mcnemar_p = min(1.0, 2.0 * tail)
+    else:
+        mcnemar_p = 1.0
     return {
         "n": len(complete),
         "same_candidate_rate": float(np.mean(same_candidate)),
         "correctness_flip_rate": float(np.mean(flips)),
         "mean_abs_p_gold_shift": float(np.mean(p_differences)),
+        "short_only_correct": short_only_correct,
+        "long_only_correct": long_only_correct,
+        "mcnemar_exact_p": mcnemar_p,
     }
 
 

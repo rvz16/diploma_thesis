@@ -50,16 +50,30 @@ Impossible Bench (Логическое несоответсвие с теста�
   model-API keys и используют тот же leakage-free `execute/review` protocol.
 - [x] Jeeves smoke `ba11d0485e8d4501983aad9a966249e9` завершён: 5/5
   predictions, но `n=5` (4 wrong / 1 correct) считается только integration
-  smoke. Clef retry `8fe1d1f9e6524836a8be8cbc571392e7` загрузил checkpoint,
-  но остановился при создании processor из-за отсутствующего `torchvision`;
-  dependency добавлена в pinned environment для следующего запуска.
+  smoke. Ошибка Clef с отсутствующим `torchvision` исправлена pinned dependency.
 - [x] Реализован прямой paired H1--H3 benchmark на 174 BFCL `multiple` tasks:
   gold action + schema-valid wrong-argument, near wrong-tool и far wrong-tool
   candidates; short/long arbitrary labels, schema-complexity и candidate-
   similarity strata; leakage tests проходят. Добавлено сравнение с теми же
   constrained Qwen2.5-0.5B/3B rows по accuracy, Brier/ECE/log-loss.
-- [ ] Запустить Jeeves и Clef сначала на общем cohort 40 tasks x 2 label
-  encodings, проверить paired results, затем расширить до всех 174 tasks.
+- [x] Jeeves (`585bcecbd74845cf8a057d4bbcbcace0`) и Clef
+  (`f57a3cd8a9c34434a0693c2967a1bce2`) завершили общий cohort 40 tasks x 2
+  label encodings: обе модели дали 80/80 correct. Это показывает, что cohort
+  слишком лёгок для крупных 9B/27B decision models и сам по себе не доказывает
+  H1/H2.
+- [x] Добавлена и прогнана существенно меньшая non-autoregressive decision model
+  `convaiinnovations/laya-typed-decisions` 421M (task
+  `6bd5c859cd0e47c1991ab8c28c6b15de`, 80/80 запросов). Short-label accuracy
+  0.700, long-label accuracy 0.475; same-candidate rate 0.550,
+  correctness-flip rate 0.325 (paired exact McNemar p=0.0225). При short
+  labels она равна Qwen2.5-3B и на 0.05 лучше Qwen2.5-0.5B, но long labels
+  резко ухудшают результат. Это прямое
+  свидетельство label/tokenization sensitivity, а не общей победы decision
+  decoding. Warm latency около 0.03 s/request; confidence пока считать
+  предварительной из-за предупреждений model card о calibration.
+- [ ] Расширить paired candidate-choice до всех 174 tasks и добавить bootstrap
+  confidence intervals; отдельно проверить semantic labels вместо произвольных
+  short/long IDs.
 - [ ] Добавить MC sampling и action-distance logging для честных SAUP/UProp
   trajectory baselines; затем провести full V3/V4 multi-turn evaluation.
 - [ ] Добавить abstention/impossible примеры и затем выбрать один внешний

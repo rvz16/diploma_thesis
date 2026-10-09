@@ -421,7 +421,7 @@ Brier score and ECE are reported only for Jev's native `P(review)`;
 G-NLL-SMT and CP remain ranking baselines and are compared by AUROC/AUPRC and
 matched-coverage risk.
 
-### Free open-weight alternatives: Clef and Jeeves
+### Free open-weight alternatives: Clef, Jeeves, and Laya
 
 `run_clearml_open_decision_gate.py` runs the same gate from public weights,
 without a hosted-model API key:
@@ -431,6 +431,10 @@ without a hosted-model API key:
 - `PostHog/jeeves` is the 9B reasoning decision model, with both weights and
   source pinned.  On the available A100 workers it uses BF16 because Jeeves'
   FP8 kernel requires compute capability 8.9 or newer.
+- `convaiinnovations/laya-typed-decisions` is a 421M non-autoregressive
+  ModernBERT decision model with a 1,024-token context.  The PyPI runtime and
+  weight revision are pinned in `requirements_laya.txt` and
+  `run_clearml_open_decision_gate.py`.
 
 Both jobs use the same deterministic five-action prefix first, so their
 probabilities can be compared with Jev, G-NLL-SMT, and CP on identical rows.
@@ -475,6 +479,7 @@ inference and never enter the model request.
 ```bash
 python -m unittest test_candidate_choice.py
 python run_clearml_candidate_choice.py --backend jeeves --limit 2 --dry-run
+python run_clearml_candidate_choice.py --backend laya --limit 2 --dry-run
 
 # First statistically useful cohort: 40 tasks x two label conditions.
 clearml-task --project "Diploma Thesis Multi-Turn UQ" \
@@ -493,6 +498,14 @@ clearml-task --project "Diploma Thesis Multi-Turn UQ" \
   --docker nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 \
   --args backend=clef limit=40 conditions=short,long
 
+clearml-task --project "Diploma Thesis Multi-Turn UQ" \
+  --name "BFCL candidate choice | Laya-421M | 40x2" \
+  --repo https://github.com/rvz16/diploma_thesis.git --branch main \
+  --script prototype/run_clearml_candidate_choice.py --skip-task-init \
+  --requirements prototype/requirements_laya.txt --queue high_q_80 \
+  --docker nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 \
+  --args backend=laya limit=40 conditions=short,long
+
 python eval_candidate_choice.py bfcl_candidate_choice_jeeves_40.json
 ```
 
@@ -501,3 +514,12 @@ confidence Brier/ECE/log loss, multiclass Brier score, label-condition flips,
 and the interaction of the decision-model advantage with schema complexity and
 candidate similarity.  The 40-task run is an intermediate cohort; final claims
 should use the full 174 cases and confidence intervals.
+
+The first Laya run (`6bd5c859cd0e47c1991ab8c28c6b15de`) completed all 80
+requests. Accuracy was 0.700 with short option IDs and 0.475 with long IDs;
+only 0.550 of pairs selected the same underlying candidate and correctness
+flipped in 0.325 of pairs (paired exact McNemar p=0.0225). Warm inference was
+approximately 0.03 seconds per request. This makes Laya useful as a sub-1B
+stress baseline: it matches the 3B constrained AR baseline under short labels,
+but exposes substantial option-ID sensitivity rather than supporting an
+unconditional decision-model advantage.
