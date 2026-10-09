@@ -1,5 +1,6 @@
 # Official Cloudflare/clef model-card environment plus ClearML tracking.
 clearml==2.1.12
+setuptools>=77,<82
 torch==2.11.0
 transformers==5.10.2
 huggingface-hub==1.32.0
