@@ -23,7 +23,7 @@ from run_jev_bfcl_gate import _checkpoint
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--backend", choices=("clef", "jeeves", "laya"), required=True)
+    parser.add_argument("--backend", choices=("clef", "jeeves", "laya", "qwen38"), required=True)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA)
     parser.add_argument("--features", type=Path, default=DEFAULT_FEATURES)
     parser.add_argument("--features-3b", type=Path, default=DEFAULT_FEATURES_3B)
@@ -91,8 +91,17 @@ def main() -> None:
         decide, model_info = load_clef()
     elif args.backend == "jeeves":
         decide, model_info = load_jeeves(args.max_think)
-    else:
+    elif args.backend == "laya":
         decide, model_info = load_laya()
+    else:
+        from qwen_structured_choice import load_qwen_structured_choice
+
+        if conditions != ("short",):
+            raise ValueError(
+                "qwen38 matched structured-output arm requires --conditions short; "
+                "A/B/C/D are verified as one-token enum alternatives"
+            )
+        decide, model_info = load_qwen_structured_choice()
     payload: dict[str, Any] = {
         "method": "BFCL bounded candidate selection",
         "backend": args.backend,

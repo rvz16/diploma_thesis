@@ -15,6 +15,7 @@ from bfcl_candidate_choice import (
     request_body,
     semantic_labels,
 )
+from qwen_structured_choice import single_token_choice_branch
 from eval_candidate_choice import (
     _baseline,
     _bootstrap_metrics,
@@ -25,6 +26,24 @@ from eval_candidate_choice import (
 
 
 class CandidateChoiceTests(unittest.TestCase):
+
+    def test_qwen_structured_choice_requires_one_token_branch(self):
+        class FakeTokenizer:
+            outputs = {
+                '{"action":"A"}': [10, 21, 30],
+                '{"action":"B"}': [10, 22, 30],
+                '{"action":"C"}': [10, 23, 30],
+                '{"action":"D"}': [10, 24, 30],
+            }
+
+            def encode(self, text, add_special_tokens=False):
+                self.assert_false = add_special_tokens
+                return self.outputs[text]
+
+        prefix, branch = single_token_choice_branch(FakeTokenizer(), ["A", "B", "C", "D"])
+        self.assertEqual(prefix, [10])
+        self.assertEqual(branch, {"A": 21, "B": 22, "C": 23, "D": 24})
+
     @classmethod
     def setUpClass(cls):
         cls.cases = build_base_cases()
