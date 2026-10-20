@@ -11,6 +11,7 @@ sys.path.insert(0, ".")
 from bfcl_candidate_choice import (
     action_is_schema_valid,
     build_base_cases,
+    build_no_match_cases,
     encode_case,
     request_body,
     semantic_labels,
@@ -86,6 +87,24 @@ class CandidateChoiceTests(unittest.TestCase):
         self.assertNotIn("wrong_valid", rendered)
         self.assertNotIn("gnll", rendered)
         self.assertEqual(set(request["questions"]), {"action"})
+
+    def test_no_match_cases_remove_gold_and_make_abstention_correct(self):
+        cases = build_no_match_cases(self.cases)
+        self.assertGreaterEqual(len(cases), 100)
+        for case in cases:
+            self.assertEqual(case["case_variant"], "no_match")
+            self.assertFalse(any(c["kind"] == "gold" for c in case["candidates"]))
+            abstentions = [
+                index for index, candidate in enumerate(case["candidates"])
+                if candidate["kind"] == "none_of_the_above"
+            ]
+            self.assertEqual(abstentions, [case["gold_index"]])
+            encoded = encode_case(case, "short")
+            self.assertEqual(
+                encoded["candidate_kinds"][case["gold_index"]]
+                if "candidate_kinds" in encoded else case["candidates"][case["gold_index"]]["kind"],
+                "none_of_the_above",
+            )
 
     def test_evaluator_uses_native_distribution_and_paired_labels(self):
         baseline = {

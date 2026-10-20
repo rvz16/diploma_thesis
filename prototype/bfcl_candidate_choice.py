@@ -31,6 +31,7 @@ LONG_LABELS = (
     "candidate_option_delta",
 )
 LABEL_CONDITIONS = ("short", "long", "semantic")
+CASE_MODES = ("standard", "no_match", "both")
 
 
 def _json_lines(path: Path) -> list[dict[str, Any]]:
@@ -296,12 +297,12 @@ def semantic_labels(candidates: list[dict[str, Any]]) -> tuple[str, ...]:
     """Create gold-agnostic semantic IDs while keeping same-tool options unique."""
     totals: dict[str, int] = {}
     for candidate in candidates:
-        name = candidate["action"]["name"]
+        name = (candidate["action"] or {}).get("name", "no_valid_candidate")
         totals[name] = totals.get(name, 0) + 1
     seen: dict[str, int] = {}
     labels = []
     for candidate in candidates:
-        name = candidate["action"]["name"]
+        name = (candidate["action"] or {}).get("name", "no_valid_candidate")
         seen[name] = seen.get(name, 0) + 1
         labels.append(name if totals[name] == 1 else f"{name}__variant_{seen[name]}")
     return tuple(labels)
@@ -316,10 +317,19 @@ def encode_case(case: dict[str, Any], condition: str) -> dict[str, Any]:
         labels = semantic_labels(case["candidates"])
     else:
         raise ValueError(f"condition must be one of {LABEL_CONDITIONS}")
-    criteria = {
-        label: "Candidate action: " + json.dumps(candidate["action"], sort_keys=True)
-        for label, candidate in zip(labels, case["candidates"])
-    }
+    criteria = {}
+    for label, candidate in zip(labels, case["candidates"]):
+        if candidate["kind"] == "none_of_the_above":
+            criteria[label] = (
+                "No candidate action is semantically correct; do not execute any of them."
+            )
+        else:
+            criteria[label] = (
+                "Candidate action: " + json.dumps(candidate["action"], sort_keys=True)
+            )
+    has_abstention = any(
+        candidate["kind"] == "none_of_the_above" for candidate in case["candidates"]
+    )
     return {
         "case_id": case["id"],
         "condition": condition,
@@ -333,6 +343,11 @@ def encode_case(case: dict[str, Any], condition: str) -> dict[str, Any]:
             "instructions": (
                 "Choose exactly one candidate action. All candidates are schema-valid; "
                 "select the tool and arguments that best satisfy the user request."
+                + (
+                    " Choose the no-valid-candidate option only if every displayed "
+                    "action is semantically wrong."
+                    if has_abstention else ""
+                )
             ),
             "criteria": criteria,
         },
@@ -342,16 +357,59 @@ def encode_case(case: dict[str, Any], condition: str) -> dict[str, Any]:
         "schema_complexity": case["schema_complexity"],
         "near_tool_similarity": case["near_tool_similarity"],
         "baselines": case["baselines"],
+        "case_variant": case.get("case_variant", "standard"),
     }
+
+
+def build_no_match_cases(
+    base_cases: list[dict[str, Any]], seed: int = 2026
+) -> list[dict[str, Any]]:
+    """Remove the oracle action and make abstention the only correct option."""
+    cases = []
+    for case in base_cases:
+        wrong = [candidate for candidate in case["candidates"] if candidate["kind"] != "gold"]
+        if len(wrong) < 2:
+            continue
+        candidates = [dict(candidate) for candidate in wrong[:3]]
+        candidates.append({
+            "kind": "none_of_the_above",
+            "action": None,
+            "similarity": None,
+        })
+        item_seed = int(hashlib.sha256(
+            f"{seed}:no_match:{case['id']}".encode()
+        ).hexdigest()[:16], 16)
+        random.Random(item_seed).shuffle(candidates)
+        transformed = dict(case)
+        transformed.update({
+            "id": f"{case['id']}::no_match",
+            "candidates": candidates,
+            "gold_index": next(
+                index for index, candidate in enumerate(candidates)
+                if candidate["kind"] == "none_of_the_above"
+            ),
+            "case_variant": "no_match",
+        })
+        cases.append(transformed)
+    return cases
 
 
 def build_encoded_cases(data_dir: Path = DEFAULT_DATA,
                         features_path: Path = DEFAULT_FEATURES,
                         features_3b_path: Path | None = DEFAULT_FEATURES_3B,
                         conditions: tuple[str, ...] = ("short", "long"),
+                        case_mode: str = "standard",
                         seed: int = 2026,
                         limit: int | None = None) -> list[dict[str, Any]]:
-    cases = build_base_cases(data_dir, features_path, features_3b_path, seed)
+    if case_mode not in CASE_MODES:
+        raise ValueError(f"case_mode must be one of {CASE_MODES}")
+    standard = build_base_cases(data_dir, features_path, features_3b_path, seed)
+    if case_mode == "standard":
+        cases = standard
+    elif case_mode == "no_match":
+        cases = build_no_match_cases(standard, seed)
+    else:
+        cases = standard + build_no_match_cases(standard, seed)
     random.Random(seed).shuffle(cases)
     if limit:
         cases = cases[:limit]

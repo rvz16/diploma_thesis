@@ -13,6 +13,7 @@ from bfcl_candidate_choice import (
     DEFAULT_DATA,
     DEFAULT_FEATURES,
     DEFAULT_FEATURES_3B,
+    CASE_MODES,
     LABEL_CONDITIONS,
     build_encoded_cases,
     request_body,
@@ -31,6 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=40,
                         help="Number of unique BFCL tasks; 0 selects the full population")
     parser.add_argument("--conditions", default="short,long")
+    parser.add_argument("--case-mode", choices=CASE_MODES, default="standard")
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--max-think", type=int, default=768)
     parser.add_argument("--dry-run", action="store_true")
@@ -51,6 +53,7 @@ def main() -> None:
         args.features,
         args.features_3b,
         conditions=conditions,
+        case_mode=args.case_mode,
         seed=args.seed,
         limit=args.limit or None,
     )
@@ -62,11 +65,12 @@ def main() -> None:
     task = Task.init(
         project_name="Diploma Thesis Multi-Turn UQ",
         task_name=(f"BFCL candidate choice | {args.backend} | "
-                   f"n={args.limit or 'all'}x{len(conditions)}"),
+                   f"{args.case_mode} | n={args.limit or 'all'}x{len(conditions)}"),
         task_type=Task.TaskTypes.testing,
         reuse_last_task_id=False,
     )
-    task.add_tags(["bfcl", "candidate-choice", "h1-h2-h3", args.backend, *conditions])
+    task.add_tags(["bfcl", "candidate-choice", "h1-h2-h3", args.backend,
+                   args.case_mode, *conditions])
     task.connect({
         "backend": args.backend,
         "data_dir": str(args.data_dir),
@@ -75,6 +79,7 @@ def main() -> None:
         "output": str(args.output),
         "limit": args.limit,
         "conditions": ",".join(conditions),
+        "case_mode": args.case_mode,
         "seed": args.seed,
         "max_think": args.max_think,
     }, name="experiment")
@@ -111,6 +116,7 @@ def main() -> None:
             "seed": args.seed,
             "limit": args.limit or None,
             "conditions": list(conditions),
+            "case_mode": args.case_mode,
             "unique_tasks": len({case["case_id"] for case in cases}),
             "requests": len(cases),
         },
@@ -139,6 +145,7 @@ def main() -> None:
             "candidate_labels": case["candidate_labels"],
             "candidate_kinds": [candidate["kind"] for candidate in case["candidates"]],
             "candidate_actions": [candidate["action"] for candidate in case["candidates"]],
+            "case_variant": case["case_variant"],
             "schema_complexity": case["schema_complexity"],
             "near_tool_similarity": case["near_tool_similarity"],
             "baselines": case["baselines"],

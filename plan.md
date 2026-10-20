@@ -98,9 +98,12 @@ Impossible Bench (Логическое несоответсвие с теста�
 - [ ] Завершить matched Clef/Qwen3.8 When2Call smoke, затем полный запуск на
   3,652 примерах с paired bootstrap CI. После этого перейти к stateful
   ToolSandbox как второму внешнему benchmark.
-- [ ] Добавить отдельные BFCL impossible/no-match candidates; When2Call уже
-  закрывает реальное решение abstain/clarify, но не изолирует projection tax
-  внутри одного и того же набора BFCL actions.
+- [x] Добавлены 174 отдельные BFCL `no_match` cases: oracle action удаляется,
+  остаются 2--3 schema-valid semantic distractors и нейтральный
+  `none_of_the_above` option. Это изолирует abstention при тех же requests и
+  tool schemas; leakage/regression tests проходят.
+- [ ] После When2Call smoke запустить paired Clef/Qwen3.8 BFCL `no_match` и
+  оценить false-execution rate, accuracy/calibration и paired bootstrap CI.
 
 ## Актуальная литература: structured output, UQ и многошаговые агенты
 

@@ -571,6 +571,20 @@ do not establish that semantic labels are intrinsically harmful to larger
 Clef/Jeeves-style decision models. The experiment also does not replace the
 planned multi-step trajectory evaluation.
 
+### BFCL no-match stress condition
+
+The candidate builder also supports `--case-mode no_match`. For each of the
+174 source tasks it removes the oracle call, retains two or three schema-valid
+semantic distractors, and adds a neutral `none_of_the_above` option. This tests
+whether a model confidently executes a valid-looking but wrong action when no
+correct action is available, while preserving the original request and tool
+schemas.
+
+```bash
+python run_clearml_candidate_choice.py --backend qwen38 \
+  --case-mode no_match --limit 8 --conditions short --dry-run
+```
+
 ## External benchmark: NVIDIA When2Call
 
 `when2call_adapter.py` adds the first external benchmark from the thesis plan.
