@@ -90,8 +90,17 @@ Impossible Bench (Логическое несоответсвие с теста�
   candidate selection, а не ко всем decision models.
 - [ ] Добавить MC sampling и action-distance logging для честных SAUP/UProp
   trajectory baselines; затем провести full V3/V4 multi-turn evaluation.
-- [ ] Добавить abstention/impossible примеры и затем выбрать один внешний
-  benchmark из списка выше для полноценного нового запуска.
+- [x] Выбран первый внешний benchmark: официальный NVIDIA When2Call (3,652
+  test cases; tool call / request missing information / cannot answer).
+  Добавлен pinned adapter с проверкой SHA-256, одинаковым A/B/C/D output space
+  для Clef-27B и его Qwen3.8-27B backbone, checkpoint/resume и отдельными
+  macro-F1, confusion-matrix и tool-hallucination метриками.
+- [ ] Завершить matched Clef/Qwen3.8 When2Call smoke, затем полный запуск на
+  3,652 примерах с paired bootstrap CI. После этого перейти к stateful
+  ToolSandbox как второму внешнему benchmark.
+- [ ] Добавить отдельные BFCL impossible/no-match candidates; When2Call уже
+  закрывает реальное решение abstain/clarify, но не изолирует projection tax
+  внутри одного и того же набора BFCL actions.
 
 ## Актуальная литература: structured output, UQ и многошаговые агенты
 

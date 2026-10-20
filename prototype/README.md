@@ -570,3 +570,39 @@ candidate selection. Semantic labels expose model/interface sensitivity; they
 do not establish that semantic labels are intrinsically harmful to larger
 Clef/Jeeves-style decision models. The experiment also does not replace the
 planned multi-step trajectory evaluation.
+
+## External benchmark: NVIDIA When2Call
+
+`when2call_adapter.py` adds the first external benchmark from the thesis plan.
+It pins the official NVIDIA repository revision and SHA-256 of the 3,652-row
+MCQ test set. The benchmark tests whether the model should call a tool, ask for
+missing information, or refuse because the available tools cannot answer the
+request. A direct-response distractor is retained exactly as published.
+
+For a controlled Clef comparison, the four response texts are mapped to neutral
+`A/B/C/D` IDs. Clef-27B and its exact Qwen3.8-27B backbone see the same state,
+tools, response candidates, and one-token finite JSON output language. The
+evaluator reports accuracy and calibration with paired bootstrap intervals,
+category macro-F1/confusion matrices, and the benchmark's official tool
+hallucination rate on `cannot_answer` examples with no tools.
+
+```bash
+python -m unittest test_when2call.py
+python run_clearml_when2call.py --backend qwen38 --limit 12 --dry-run
+
+clearml-task --project "Diploma Thesis Multi-Turn UQ" \
+  --name "When2Call matched choice | Clef-27B | smoke-120" \
+  --repo https://github.com/rvz16/diploma_thesis.git --branch main \
+  --script prototype/run_clearml_when2call.py --skip-task-init \
+  --requirements prototype/requirements_clef.txt --queue sience_80 \
+  --docker nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 \
+  --args backend=clef limit=120
+
+clearml-task --project "Diploma Thesis Multi-Turn UQ" \
+  --name "When2Call matched choice | Qwen3.8-27B | smoke-120" \
+  --repo https://github.com/rvz16/diploma_thesis.git --branch main \
+  --script prototype/run_clearml_when2call.py --skip-task-init \
+  --requirements prototype/requirements_clef.txt --queue sience_80 \
+  --docker nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 \
+  --args backend=qwen38 limit=120
+```

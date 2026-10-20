@@ -66,7 +66,7 @@ def _prompt(body: dict[str, Any]) -> str:
         "question": body["questions"]["action"],
     }
     return (
-        "Select exactly one candidate action. All candidates are schema-valid. "
+        "Select exactly one option. "
         "Return only a JSON object matching {\"action\": <allowed option ID>}.\n\n"
         + json.dumps(record, ensure_ascii=False, sort_keys=True)
     )
