@@ -653,3 +653,20 @@ python -m unittest test_apibank_cp.py
 python run_clearml_apibank_cp.py --dry-run \
   --revision aa8e72537993ba99e69dfaafa59ed015b17504d1
 ```
+
+For the larger Qwen3.8-27B baseline, use
+`requirements_apibank_qwen38_cp.txt` and explicitly select the text-only
+multimodal loader with non-thinking generation:
+
+```bash
+python run_clearml_apibank_cp.py --model Qwen/Qwen3.8-27B \
+  --revision 1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0 \
+  --model-loader multimodal --thinking off --limit 20 \
+  --output apibank_level1_qwen38_27b_cp_smoke20.json
+```
+
+This retains the original token-level CP/logit measurements for the full call.
+The model weights occupy 51.75 GiB in BF16; the short-context, batch-one smoke
+targets one A100 80GB, matching our already successful bounded-choice model
+load. The full-call cache and runtime still need the separate integration
+smoke. Quantized and reasoning-enabled runs must be reported as separate arms.

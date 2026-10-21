@@ -117,8 +117,31 @@ Impossible Bench (Логическое несоответсвие с теста�
   CP-only/logit/logit+CP сравниваются dialogue-grouped OOF; invalid outputs
   учитываются отдельно. Локальный integration smoke: 3/3 inference без ошибок,
   3/3 schema-valid (Qwen2.5-0.5B); 14 adapter/regression tests проходят.
+  Полный Qwen2.5-3B запуск поставлен 2026-10-21: ClearML
+  `3b79875b3b6a4e09ad08ace0ee253326`, очередь `sience`, позиция 3 при
+  проверке; limit=0 (290 calls), seed=2026, код `63e59c6`.
+- [ ] Дополнительное сравнение компактных AR-моделей на тех же 290 API-Bank
+  calls, seed=2026, max_string_chars=256 и pinned code `63e59c6`:
+  Qwen3-4B-Instruct-2507 (`cdbee75f17c01a7cc42f958dc650907174af0554`),
+  task `7dbe342adbcd466299f9215a18790f93`; xLAM-2-3b-fc-r
+  (`be83286f6a1a82c8bd4bfb751190271f58693f30`),
+  task `856ad73332d743b6986bc51c3fd685d1`. Поставлены 2026-10-21 в обычную
+  GPU-очередь `sience`, позиции 4/5 при проверке, статус queued. Проверены
+  configs и chat templates без open thinking; GPU inference ещё не начат.
+  Результаты сохраняются в разные output files. Сравнение использует общий
+  constrained JSON protocol, а не отдельный native tool-call формат каждой
+  модели. BF16 веса 3B/4B не требуют выделения 2x80GB worker.
 - [ ] После API-Bank next-call experiment подключить stateful ToolSandbox
   для переноса CP/logit и дальнейших trajectory-methods.
+- [ ] Добавить сильный современный AR baseline: Qwen3.8-27B BF16 на одной
+  A100 80GB, сначала API-Bank smoke-20. Закреплён checkpoint
+  `1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0`; реальные BF16 веса 51.75 GiB.
+  В основной decoder добавлен explicit multimodal loader для text-only input
+  и `thinking=off`; pre-mask CP/logit instrumentation сохранена. Для сравнения
+  других семейств кандидаты: GLM-4.7-Flash (~31.2B параметров, около 58.2 GiB
+  BF16 weights, 1x80GB на коротком контексте / 2x80GB с запасом) и
+  Qwen3.6-35B-A3B (66.97 GiB BF16 weights, предпочтительно 2x80GB).
+  Это оценки памяти весов; runtime/cache/context учитываются отдельно.
 - [x] Добавлены 174 отдельные BFCL `no_match` cases: oracle action удаляется,
   остаются 2--3 schema-valid semantic distractors и нейтральный
   `none_of_the_above` option. Это изолирует abstention при тех же requests и

@@ -22,6 +22,8 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--output", type=Path, default=Path("apibank_level1_qwen25_3b_cp.json"))
     parser.add_argument("--max-string-chars", type=int, default=256)
+    parser.add_argument("--model-loader", choices=("causal", "multimodal"), default="causal")
+    parser.add_argument("--thinking", choices=("default", "off", "on"), default="default")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--no-clearml", action="store_true")
@@ -55,7 +57,7 @@ def main():
         from clearml import Task
         task = Task.init(
             project_name="Diploma Thesis Multi-Turn UQ",
-            task_name="API-Bank level-1 | Qwen2.5-3B | CP + logit baselines",
+            task_name=f"API-Bank level-1 | {args.model} | CP + logit baselines",
             task_type=Task.TaskTypes.testing,
             reuse_last_task_id=False,
         )
@@ -63,6 +65,7 @@ def main():
         task.connect({
             "model": args.model, "revision": args.revision, "limit": args.limit,
             "seed": args.seed, "max_string_chars": args.max_string_chars,
+            "model_loader": args.model_loader, "thinking": args.thinking,
         }, name="experiment")
         if not torch.cuda.is_available():
             raise RuntimeError("ClearML run requires a CUDA GPU")
@@ -79,11 +82,14 @@ def main():
         model_path, id2str_cache=f"id2str_apibank_{cache_tag}.pkl",
         dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
         local_files_only=True,
+        model_loader=args.model_loader,
+        enable_thinking=None if args.thinking == "default" else args.thinking == "on",
     )
     fc.MAX_STR = args.max_string_chars
     selection = {
         "manifest": manifest, "model": args.model, "revision": args.revision,
         "max_string_chars": args.max_string_chars,
+        "model_loader": args.model_loader, "thinking": args.thinking,
     }
     payload = {"model": args.model, "benchmark": "API-Bank level-1 scalar subset",
                "selection": selection, "rows": []}

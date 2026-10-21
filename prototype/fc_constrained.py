@@ -196,10 +196,20 @@ class ConstrainedFC:
     MAX_STR = 48        # max chars in a free-string value (prevents runaway loops)
 
     def __init__(self, model_name: str, id2str_cache: str | None = None,
-                 dtype=torch.float32, local_files_only: bool = False):
+                 dtype=torch.float32, local_files_only: bool = False,
+                 model_loader: str = "causal", enable_thinking: bool | None = None):
+        if model_loader not in {"causal", "multimodal"}:
+            raise ValueError("model_loader must be 'causal' or 'multimodal'")
+        self.enable_thinking = enable_thinking
         self.tok = AutoTokenizer.from_pretrained(
             model_name, local_files_only=local_files_only)
-        self.model = AutoModelForCausalLM.from_pretrained(
+        model_class = AutoModelForCausalLM
+        if model_loader == "multimodal":
+            # Qwen3.8-27B has a vision-language wrapper even for text-only
+            # inference. Keep the same raw-logit instrumentation after loading.
+            from transformers import AutoModelForMultimodalLM
+            model_class = AutoModelForMultimodalLM
+        self.model = model_class.from_pretrained(
             model_name, dtype=dtype, local_files_only=local_files_only).to(DEVICE)
         self.model.eval()
         self.id2str = self._build_id2str(model_name, id2str_cache)
@@ -221,8 +231,11 @@ class ConstrainedFC:
     def build_prefix(self, system, user) -> torch.Tensor:
         msgs = [{"role": "system", "content": system},
                 {"role": "user", "content": user}]
+        template_options = {}
+        if getattr(self, "enable_thinking", None) is not None:
+            template_options["enable_thinking"] = self.enable_thinking
         text = self.tok.apply_chat_template(
-            msgs, tokenize=False, add_generation_prompt=True)
+            msgs, tokenize=False, add_generation_prompt=True, **template_options)
         return self.tok(text, return_tensors="pt").input_ids.to(DEVICE)
 
     # ---- unconstrained (prompt-only) generation, for the B3 constraint-tax
