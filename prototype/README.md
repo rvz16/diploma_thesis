@@ -620,3 +620,36 @@ clearml-task --project "Diploma Thesis Multi-Turn UQ" \
   --docker nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 \
   --args backend=qwen38 limit=120
 ```
+
+## External CP/logit benchmark: API-Bank level-1
+
+The simpler first external test of the original uncertainty methods is
+API-Bank level-1 given-description next-call prediction. The official dialogue
+texts and API declarations are pinned in `data/apibank_level1_faf75467.json`,
+with per-source-file SHA-256 hashes and Apache-2.0 attribution. It has 389 raw
+calls: 74 are excluded because their dialogue inventory contains unsupported
+list schemas, and 25 more have reference arguments inconsistent with the
+declared scalar schema. The remaining 290 calls span 163 dialogues and 39
+target APIs. All tools from each included dialogue are retained.
+
+`run_clearml_apibank_cp.py` uses the original `ConstrainedFC.generate_schema`
+and `features_from_steps` to generate complete calls, preserving pre-mask
+allowed mass, chosen-token probabilities, CP/projection cost, and all logit
+baselines. The scalar grammar has a fixed 256-character free-string guard for
+this experiment. Historical reference observations are provided up to the
+current call; its target arguments, result, and future messages are withheld.
+
+Correctness is strict typed reference name/argument equality. This adapted
+next-call metric is distinct from API-Bank's official execution metric and
+does not measure autonomous trajectory success. Invalid generations are
+reported separately from wrong-valid calls. Detection includes raw AUROC/AP,
+selective risk at 20/50/80% coverage, and dialogue-grouped OOF CP-only,
+logit-only and logit+CP logistic detectors; the scaler is fit inside each
+training fold. These target-domain OOF results are not a frozen BFCL-to-API-Bank
+transfer test.
+
+```bash
+python -m unittest test_apibank_cp.py
+python run_clearml_apibank_cp.py --dry-run \
+  --revision aa8e72537993ba99e69dfaafa59ed015b17504d1
+```

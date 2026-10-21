@@ -95,9 +95,30 @@ Impossible Bench (Логическое несоответсвие с теста�
   Добавлен pinned adapter с проверкой SHA-256, одинаковым A/B/C/D output space
   для Clef-27B и его Qwen3.8-27B backbone, checkpoint/resume и отдельными
   macro-F1, confusion-matrix и tool-hallucination метриками.
-- [ ] Завершить matched Clef/Qwen3.8 When2Call smoke, затем полный запуск на
-  3,652 примерах с paired bootstrap CI. После этого перейти к stateful
-  ToolSandbox как второму внешнему benchmark.
+- [x] Matched Clef/Qwen3.8 When2Call smoke завершён: по 120/120 ответов.
+  Accuracy Clef 97/120 (0.808), Qwen 83/120 (0.692); paired delta +0.117,
+  task-bootstrap 95% CI [0.033, 0.200], exact McNemar p=0.00936 по inference
+  logs. Tool-hallucination subset: Clef 0/8, Qwen 2/8. Calibration-метрики
+  ещё не пересчитаны: локальному SDK не хватает S3 credentials для artifacts.
+- [ ] Полный matched When2Call поставлен 2026-10-21 на все 3,652 примера:
+  Clef `c9e0cdd293c142b88961c16ecb043dac`,
+  Qwen `ec960a5c4f394b82955133751d9b31ad`; очередь `sience_80`,
+  pinned code `569c5a1`, seed 2026, limit=0. При постановке queued, позиции
+  2 и 3. После завершения проверить полноту и paired bootstrap CI.
+- [ ] Перенести исходные CP/projection-cost и logit-baselines на внешний
+  benchmark из плана. Для первого простого запуска выбран API-Bank level-1:
+  pinned данные `faf75467`, 290 scalar-schema calls / 163 dialogues / 39 APIs
+  из 389 raw calls. Исключения: 74 calls из диалогов с неподдерживаемыми
+  схемами и 25 reference/schema mismatches. Полный catalogue оставлен для
+  каждого включённого диалога. Qwen2.5-3B генерирует полный JSON call;
+  CP/projection-cost и G-NLL/G-NLL-SMT/MAX/AVG считаются до маскирования.
+  Correctness — strict typed reference match; teacher-forced next-call
+  protocol, не официальный execution score и не autonomous rollout.
+  CP-only/logit/logit+CP сравниваются dialogue-grouped OOF; invalid outputs
+  учитываются отдельно. Локальный integration smoke: 3/3 inference без ошибок,
+  3/3 schema-valid (Qwen2.5-0.5B); 14 adapter/regression tests проходят.
+- [ ] После API-Bank next-call experiment подключить stateful ToolSandbox
+  для переноса CP/logit и дальнейших trajectory-methods.
 - [x] Добавлены 174 отдельные BFCL `no_match` cases: oracle action удаляется,
   остаются 2--3 schema-valid semantic distractors и нейтральный
   `none_of_the_above` option. Это изолирует abstention при тех же requests и

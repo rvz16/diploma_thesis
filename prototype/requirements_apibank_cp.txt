@@ -1,0 +1,11 @@
+# Same core model environment as the successful BFCL CP rollout.
+clearml==2.1.12
+boto3>=1.35,<2
+setuptools>=77,<82
+torch==2.7.1
+transformers==5.19.0
+huggingface-hub==1.31.0
+tokenizers==0.23.1
+numpy==1.26.4
+scipy==1.14.1
+scikit-learn==1.5.2
